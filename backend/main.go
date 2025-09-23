@@ -51,6 +51,12 @@ func main() {
 	router.GET(pathh+"ejemplo-querystring", rutas.Ejemplo_querystring)
 	router.POST(pathh+"upload", rutas.Ejemplo_upload)
 
+	router.GET(pathh+"categorias", rutas.Categoria_get)
+	router.GET(pathh+"categorias/:id", rutas.Categoria_getId)
+	router.POST(pathh+"categorias", rutas.Categoria_post)
+	router.PUT(pathh+"categorias/:id", rutas.Categoria_put)
+	router.DELETE(pathh+"categorias/:id", rutas.Categoria_delete)
+
 	// Ejecucion
-	router.Run() // listen and serve on 0.0.0.0:8080
+	router.Run(":8081") // listen and serve on 0.0.0.0:8080
 }
