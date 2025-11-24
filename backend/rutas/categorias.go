@@ -5,6 +5,7 @@ import (
 	"backend/dto"
 	"backend/models"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gosimple/slug"
@@ -12,7 +13,7 @@ import (
 )
 
 func Categoria_get(c *gin.Context) {
-	var datos []models.Categoria // Corregido: usar el modelo correcto
+	var datos []models.Categoria
 	result := database.Database.Find(&datos)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -129,6 +130,18 @@ func Categoria_delete(c *gin.Context) {
 		})
 		return
 	}
+	// Validamos que exista la receta por categoria_id
+	categoria_id, _ := strconv.ParseUint(id, 10, 64)
+	existe := models.Recetas{}
+	database.Database.Where(&models.Receta{CategoriaID: uint(categoria_id)}).Find(&existe)
+	if len(existe) >= 1 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"estado":  "error",
+			"mensaje": "No se puede eliminar la categoria porque tiene recetas asociadas",
+		})
+		return
+	}
+
 	// Eliminamos el registro
 	database.Database.Delete(&datos)
 	// Retornamos
