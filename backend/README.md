@@ -136,7 +136,7 @@ docker-compose up -d
 Esto levantará un contenedor MySQL 8 en el puerto `3306` con:
 - Base de datos: `go_fullstack`
 - Usuario: `root`
-- Contraseña: `rami123`
+- Contraseña: `xxxx`
 
 ### 4. Crear archivo de variables de entorno
 
@@ -804,7 +804,8 @@ Este proyecto está bajo la licencia MIT. Ver el archivo `LICENSE` para más det
 
 ## 👨‍💻 Autor
 
-**Rami**
+**Ramiro Nuñez Perez**
+**Telefono: +51961501468**
 
 ---
 
