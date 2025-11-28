@@ -1,15 +1,44 @@
+# ==================== DOCKER COMPOSE - MySQL 8 ====================
+# Configuración para levantar un contenedor de MySQL 8.0
+# Uso:
+#   - Iniciar: docker-compose up -d
+#   - Detener: docker-compose down
+#   - Ver logs: docker-compose logs -f mysql
+#   - Acceder a MySQL: docker exec -it mysql8 mysql -uroot -prami123
+
 services:
   mysql:
+    # Imagen oficial de MySQL 8
     image: mysql:8
+
+    # Nombre personalizado del contenedor
     container_name: mysql8
+
+    # Variables de entorno para configurar MySQL
     environment:
+      # Base de datos que se creará automáticamente
       MYSQL_DATABASE: go_fullstack
-      MYSQL_ROOT_PASSWORD: rami123
+
+      # Contraseña del usuario root
+      # ⚠️ IMPORTANTE: Cambia esta contraseña antes de usar en producción
+      MYSQL_ROOT_PASSWORD: tu_password_mysql_seguro
+
+    # Mapeo de puertos: host:container
+    # MySQL será accesible en localhost:3306
     ports:
       - "3306:3306"
+
+    # Volumen persistente para mantener los datos
+    # Los datos de MySQL se guardarán en el volumen 'db_data'
     volumes:
       - db_data:/var/lib/mysql
+
+    # Política de reinicio: siempre reiniciar el contenedor
+    # excepto cuando se detiene manualmente
     restart: always
 
+# Definición de volúmenes Docker
 volumes:
   db_data:
+    # Volumen para persistir los datos de MySQL
+    # Los datos no se perderán al detener/eliminar el contenedor
