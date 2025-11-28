@@ -23,6 +23,8 @@ type RecetaResponse struct {
 	Slug        string `json:"slug"`
 	CategoriaId uint   `json:"categoria_id"`
 	Categoria   string `json:"categoria"`
+	UsuarioId   uint   `json:"usuario_id"`
+	Usuario     string `json:"usuario"`
 	Tiempo      string `json:"tiempo"`
 	Foto        string `json:"foto"`
 	Descripcion string `json:"descripcion"`

@@ -22,6 +22,8 @@ type Categorias []Categoria
 type Receta struct {
 	ID          uint           `json:"id"`
 	CategoriaID uint           `json:"categoria_id"`
+	UsuarioID   uint           `json:"usuario_id"`
+	Usuario     *Usuario       `gorm:"foreignKey:UsuarioID;references:ID" json:"usuario"`
 	Categoria   *Categoria     `gorm:"foreignKey:CategoriaID;references:ID" json:"categoria"`
 	Nombre      string         `gorm:"type:varchar(100);not null" json:"nombre"`
 	Slug        string         `gorm:"type:varchar(100);not null" json:"slug"`

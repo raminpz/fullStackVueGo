@@ -19,7 +19,7 @@ import (
 
 func Receta_get(c *gin.Context) {
 	var recetas []models.Receta
-	result := database.Database.Preload("Categoria").Find(&recetas)
+	result := database.Database.Preload("Categoria").Preload("Usuario").Find(&recetas)
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"estado":  "error",
@@ -41,12 +41,26 @@ func Receta_get(c *gin.Context) {
 		if !r.Fecha.IsZero() {
 			fecha = r.Fecha.Format("02/01/2006")
 		}
+
+		// Validación segura de relaciones que pueden ser nil
+		categoriaNombre := ""
+		if r.Categoria != nil {
+			categoriaNombre = r.Categoria.Nombre
+		}
+
+		usuarioNombre := ""
+		if r.Usuario != nil {
+			usuarioNombre = r.Usuario.Nombre
+		}
+
 		respuestas = append(respuestas, dto.RecetaResponse{
 			Id:          r.ID,
 			Nombre:      r.Nombre,
 			Slug:        r.Slug,
 			CategoriaId: r.CategoriaID,
-			Categoria:   r.Categoria.Nombre,
+			Categoria:   categoriaNombre,
+			UsuarioId:   r.UsuarioID,
+			Usuario:     usuarioNombre,
 			Tiempo:      r.Tiempo,
 			Foto:        baseURL + "/public/recetas/" + r.Foto,
 			Descripcion: r.Descripcion,
@@ -63,7 +77,7 @@ func Receta_get(c *gin.Context) {
 func Receta_getId(c *gin.Context) {
 	id := c.Param("id")
 	var receta models.Receta
-	result := database.Database.Preload("Categoria").First(&receta, id)
+	result := database.Database.Preload("Categoria").Preload("Usuario").First(&receta, id)
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"estado":  "error",
@@ -84,12 +98,25 @@ func Receta_getId(c *gin.Context) {
 		fecha = receta.Fecha.Format("02/01/2006")
 	}
 
+	// Validación segura de relaciones que pueden ser nil
+	categoriaNombre := ""
+	if receta.Categoria != nil {
+		categoriaNombre = receta.Categoria.Nombre
+	}
+
+	usuarioNombre := ""
+	if receta.Usuario != nil {
+		usuarioNombre = receta.Usuario.Nombre
+	}
+
 	respuesta := dto.RecetaResponse{
 		Id:          receta.ID,
 		Nombre:      receta.Nombre,
 		Slug:        receta.Slug,
 		CategoriaId: receta.CategoriaID,
-		Categoria:   receta.Categoria.Nombre,
+		Categoria:   categoriaNombre,
+		UsuarioId:   receta.UsuarioID,
+		Usuario:     usuarioNombre,
 		Tiempo:      receta.Tiempo,
 		Foto:        baseURL + "/public/recetas/" + receta.Foto,
 		Descripcion: receta.Descripcion,
@@ -114,6 +141,7 @@ func validateRecetaForm(c *gin.Context) (map[string][]string, models.Receta) {
 
 	nombre := strings.TrimSpace(c.PostForm("nombre"))
 	categoriaStr := strings.TrimSpace(c.PostForm("categoria_id"))
+	usuarioStr := strings.TrimSpace(c.PostForm("usuario_id"))
 	tiempo := strings.TrimSpace(c.PostForm("tiempo"))
 	descripcion := strings.TrimSpace(c.PostForm("descripcion"))
 
@@ -136,6 +164,18 @@ func validateRecetaForm(c *gin.Context) (map[string][]string, models.Receta) {
 		}
 	}
 
+	// usuario_id: obligatorio y numérico (>0)
+	var usuarioID uint64
+	if usuarioStr == "" {
+		errorValidacion["usuario_id"] = append(errorValidacion["usuario_id"], "El campo usuario_id es obligatorio")
+	} else {
+		if val, err := strconv.ParseUint(usuarioStr, 10, 64); err != nil || val == 0 {
+			errorValidacion["usuario_id"] = append(errorValidacion["usuario_id"], "usuario_id debe ser un número entero positivo válido")
+		} else {
+			usuarioID = val
+		}
+	}
+
 	// tiempo: obligatorio y límite de caracteres
 	if tiempo == "" {
 		errorValidacion["tiempo"] = append(errorValidacion["tiempo"], "El campo tiempo es obligatorio")
@@ -152,6 +192,7 @@ func validateRecetaForm(c *gin.Context) (map[string][]string, models.Receta) {
 
 	receta := models.Receta{
 		CategoriaID: uint(categoriaID),
+		UsuarioID:   uint(usuarioID),
 		Nombre:      nombre,
 		Tiempo:      tiempo,
 		Descripcion: descripcion,
@@ -171,7 +212,6 @@ func Receta_post(c *gin.Context) {
 		return
 	}
 	// validar mimetype de foto
-	//fmt.Println(file.Header["Content-Type"][0])
 	if file.Header["Content-Type"][0] == "image/jpeg" || file.Header["Content-Type"][0] == "image/png" {
 
 	} else {
@@ -194,11 +234,22 @@ func Receta_post(c *gin.Context) {
 	}
 	// Validamos que exista la categoria por id
 	catExiste := models.Categoria{}
-	if err := database.Database.First(&catExiste, c.PostForm("categoria_id")); err.Error != nil {
+	if err := database.Database.First(&catExiste, recetaVal.CategoriaID); err.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"estado":  "error",
 			"mensaje": "Recurso no disponible",
-			"error":   err.Error.Error(),
+			"error":   "La categoría especificada no existe",
+		})
+		return
+	}
+
+	// Validamos que exista el usuario por id
+	usuarioExiste := models.Usuario{}
+	if err := database.Database.First(&usuarioExiste, recetaVal.UsuarioID); err.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"estado":  "error",
+			"mensaje": "Recurso no disponible",
+			"error":   "El usuario especificado no existe",
 		})
 		return
 	}
@@ -230,8 +281,10 @@ func Receta_post(c *gin.Context) {
 		return
 	}
 
+	// Creamos el registro con los valores ya validados y parseados
 	receta := models.Receta{
 		CategoriaID: recetaVal.CategoriaID,
+		UsuarioID:   recetaVal.UsuarioID,
 		Nombre:      recetaVal.Nombre,
 		Slug:        slug.Make(recetaVal.Nombre),
 		Tiempo:      recetaVal.Tiempo,
